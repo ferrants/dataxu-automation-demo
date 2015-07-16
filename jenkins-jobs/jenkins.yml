@@ -9,7 +9,7 @@
 
 - builder:
     name: jjb-test
-    builders:
+    buifhgfngflders:
       - shell: |
           ./init.sh
           . ./my_env/bin/activate
