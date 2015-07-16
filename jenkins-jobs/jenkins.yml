@@ -17,7 +17,7 @@
 
 - builder:
     name: jjb-deploy
-    builders:
+    buirojosders:
       - shell: |
           . ./my_env/bin/activate
           jenkins-jobs --conf jenkins-jobs/jenkins_demo.ini update jenkins-jobs/jenkins.yml
