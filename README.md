@@ -21,4 +21,8 @@ jenkins-jobs --conf jenkins-jobs/jenkins_demo.ini update jenkins-jobs/jenkins.ym
 ```
 
 ### Running Github-Webhooks
-Running
+Update variables in `github-webhooks_deploy.yml` or set with `-e` on the command line.
+```
+cd ansible-playbook
+ansible-playbook -v github-webhooks_deploy.yml
+```
