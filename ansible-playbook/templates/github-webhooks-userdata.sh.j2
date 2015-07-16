@@ -1,0 +1,37 @@
+#!/bin/sh
+
+exec > >(tee /var/log/user-data.log|logger -t user-data -s 2>/dev/console) 2>&1
+
+sudo yum update -y
+sudo yum install -y docker
+sudo service docker start
+sudo usermod -a -G docker ec2-user
+
+local_webhooks_config=/home/ec2-user/webhooks_config.yml
+docker_webhooks_config=/tmp/webhooks_config.yml
+cat <<-'EOF' >> ${local_webhooks_config}
+push:
+  - match:
+      branch: "master"
+    trigger:
+      job: "{repo}_master"
+
+pr:
+  - match:
+      actions:
+        - opened
+        - synchronize
+    trigger:
+      job: "{repo}_pr"
+      params:
+          fork: "{owner}"
+          branch: "{branch}"
+EOF
+}
+
+sudo docker pull library/mongo
+sudo docker run -d --name mongodb -p 27017:27017 library/mongo mongod --smallfiles
+sudo docker pull dataxu/github-webhooks:latest
+sudo docker stop github-webhooks
+sudo docker rm github-webhooks
+sudo docker run -d --name github-webhooks -p 80:8080 -e TEST=false -e MONGO_DB_HOST=mongodb -e JENKINS_URL={{ JENKINS_URL }} -e MAP_CONFIG=${docker_webhooks_config} -v ${local_webhooks_config}:${docker_webhooks_config} --link mongodb:mongodb dataxu/github-webhooks:latest

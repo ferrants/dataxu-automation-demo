@@ -1,28 +1,38 @@
-# Ansible Playbook to Deploy a Jenkins Master AMI to an AutoScaling Group
+# Ansible Playbook to Deploy a github-webhooks instance to an AutoScaling Group
 ---
-- name: Deploy Jenkins to AutoScaling Group
+- name: Deploy GitHub-Webhooks to AutoScaling Group
   hosts: localhost
   vars:
+    ami_id: ami-1ecae776 # amazon linux
     key_name: "KEY_NAME"
     subnet_id: "VPN_SUBNET"
     security_group_id: "SECURITY_GROUP"
     availability_zones: "AVAILABILITY_ZONE"
-    elb_name: jenkins-demo-elb
-    jenkins_elb_security_group_id: JENKINS_SECURITY_GROUP
+    elb_name: github-webhooks-demo-elb
+    github_webhooks_elb_security_group_id: ELB_SECURITY_GROUP
+    JENKINS_URL: JENKINS_URL
   tasks:
 
     - shell: echo $RANDOM
       register: random
 
+    - name: generate the userdata file
+      template: src="./templates/github-webhooks-userdata.sh.j2" dest="{{ playbook_dir }}/github-webhooks-userdata.sh"
+
+    - name: save the userdata info
+      command: cat {{ playbook_dir }}/github-webhooks-userdata.sh
+      register: user_data
+
     - name: configure launch config
       ec2_lc:
-        name: 'jenkins_demo_{{ ami_id }}_{{ random.stdout }}'
+        name: 'github-webhooks_demo_{{ ami_id }}_{{ random.stdout }}'
         region: 'us-east-1'
         image_id: '{{ ami_id }}'
         key_name: "{{ key_name }}"
         instance_type: "m3.medium"
         security_groups: "{{ security_group_id }}"
         assign_public_ip: yes
+        user_data: "{{ user_data.stdout }}"
 
     - name: configure elb
       ec2_elb_lb:
@@ -30,31 +40,31 @@
         state: present
         region: "us-east-1"
         subnets: "{{ subnet_id }}"
-        security_group_ids: "{{ jenkins_elb_security_group_id }}"
-        scheme: "internal"
+        security_group_ids: "{{ github_webhooks_elb_security_group_id }}"
+        scheme: "internet-facing"
         listeners:
           - protocol: "tcp"
             load_balancer_port: "80"
-            instance_port: "8080"
+            instance_port: "80"
 
     - name: configure autoscaling group and rolling-replace instances
       ec2_asg:
-        name: 'jenkins-demo-asg'
+        name: 'github-webhooks-demo-asg'
         region: us-east-1
         desired_capacity: '1'
         min_size: '1'
         max_size: '1'
         load_balancers:
           - "{{ elb_name }}"
-        launch_config_name: 'jenkins_demo_{{ ami_id }}_{{ random.stdout }}'
+        launch_config_name: 'github-webhooks_demo_{{ ami_id }}_{{ random.stdout }}'
         replace_all_instances: yes
         replace_batch_size: 1
         vpc_zone_identifier: '{{ subnet_id }}'
         availability_zones: '{{ availability_zones }}'
         tags:
-          - Name: "Jenkins Demo"
+          - Name: "github-webhooks Demo"
           - Environment: "dev"
           - Project: "automation"
           - Customer: "dataxu"
           - Team: "automation"
-          - Subcomponent: "jenkins-master"
+          - Subcomponent: "github-webhooks-master"
