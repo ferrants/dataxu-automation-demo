@@ -5,7 +5,7 @@
           name: 'string'
     builders:
       - shell: |
-          echo ${string}
+          echo nice ${string}
 
 - builder:
     name: jjb-test
