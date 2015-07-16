@@ -7,16 +7,43 @@
       - shell: |
           echo ${string}
 
-- job:
-    name: automation-demo_master
-    scm:
-      - git:
-          url: 'https://github.com/ferrants/automation-demo.git'
-          branches:
-            - 'master'
+- builder:
+    name: jjb-test
     builders:
       - shell: |
           ./init.sh
           . ./my_env/bin/activate
           jenkins-jobs -l debug test jenkins-jobs/jenkins.yml
+
+- builder:
+    name: jjb-deploy
+    builders:
+      - shell: |
+          . ./my_env/bin/activate
           jenkins-jobs --conf jenkins-jobs/jenkins_demo.ini update jenkins-jobs/jenkins.yml
+
+- job:
+    name: dataxu-automation-demo_master
+    scm:
+      - git:
+          url: 'https://github.com/ferrants/dataxu-automation-demo.git'
+          branches:
+            - 'master'
+    builders:
+      - jjb-test
+      - jjb-deploy
+
+- job:
+    name: dataxu-automation-demo_pr
+    parameters:
+      - string:
+          name: 'fork'
+      - string:
+          name: 'branch'
+    scm:
+      - git:
+          url: 'git@github.com:${fork}/dataxu-automation-demo.git'
+          branches:
+            - '${branch}'
+    builders:
+      - jjb-test

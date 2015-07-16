@@ -7,15 +7,34 @@
     subnet_id: "VPN_SUBNET"
     security_group_id: "SECURITY_GROUP"
     availability_zones: "AVAILABILITY_ZONE"
+    elb_name: jenkins-demo-elb
   tasks:
+
+    - shell: echo $RANDOM
+      register: random
+
     - name: configure launch config
       ec2_lc:
-        name: 'jenkins_demo_{{ ami_id }}'
+        name: 'jenkins_demo_{{ ami_id }}_{{ random.stdout }}'
         region: 'us-east-1'
         image_id: '{{ ami_id }}'
         key_name: "{{ key_name }}"
         instance_type: "m3.medium"
         security_groups: "{{ security_group_id }}"
+        assign_public_ip: yes
+
+    - name: configure elb
+      ec2_elb_lb:
+        name: "{{ elb_name }}"
+        state: present
+        region: "us-east-1"
+        subnets: "{{ subnet_id }}"
+        security_group_ids: "{{ elb_security_group_id }}"
+        scheme: "internal"
+        listeners:
+          - protocol: "tcp"
+            load_balancer_port: "80"
+            instance_port: "8080"
 
     - name: configure autoscaling group and rolling-replace instances
       ec2_asg:
@@ -24,7 +43,9 @@
         desired_capacity: '1'
         min_size: '1'
         max_size: '1'
-        launch_config_name: 'jenkins_demo_{{ ami_id }}'
+        load_balancers:
+          - "{{ elb_name }}"
+        launch_config_name: 'jenkins_demo_{{ ami_id }}_{{ random.stdout }}'
         replace_all_instances: yes
         replace_batch_size: 1
         vpc_zone_identifier: '{{ subnet_id }}'

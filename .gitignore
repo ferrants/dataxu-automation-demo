@@ -1,2 +1,3 @@
-ansible-playbook/vars.yml
 my_env/
+ansible-playbook/vars.yml
+ansible-playbook/roles/

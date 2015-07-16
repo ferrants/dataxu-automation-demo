@@ -67,20 +67,31 @@
   tasks:
     - shell: echo "Install other libraries needed for your system and push config files"
 
-    - pip: name="github-pr"
+    - yum: name="{{ item }}"
+      with_items:
+        - git
+        - python-devel
+        - gcc
+
+    - pip: name="{{ item }}"
+      with_items:
+        - github-pr
 
 - name: save ec2 ami
   hosts: localhost
   tags:
     - ec2_save
   tasks:
+    - shell: echo $RANDOM
+      register: random
+
     - local_action:
         module: ec2_ami
         region: "us-east-1"
         instance_id: "{{ groups['jenkins'][0] }}"
         wait: yes
-        name: "Jenkins AMI"
-        description: "Jenkins AMI"
+        name: "Jenkins Demo AMI {{ random.stdout }}"
+        description: "Jenkins Demo AMI {{ random.stdout }}"
       register: ami
 
 - name: teardown ec2 instance
