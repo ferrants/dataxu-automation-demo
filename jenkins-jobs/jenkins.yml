@@ -42,7 +42,7 @@
           name: 'branch'
     scm:
       - git:
-          url: 'git@github.com:${fork}/dataxu-automation-demo.git'
+          url: 'https://github.com/${fork}/dataxu-automation-demo.git'
           branches:
             - '${branch}'
     builders:
