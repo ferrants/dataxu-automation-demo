@@ -1,0 +1,38 @@
+# Ansible Playbook to Deploy a Jenkins Master AMI to an AutoScaling Group
+---
+- name: Deploy Jenkins to AutoScaling Group
+  hosts: localhost
+  vars:
+    key_name: "KEY_NAME"
+    subnet_id: "VPN_SUBNET"
+    security_group_id: "SECURITY_GROUP"
+    availability_zones: "AVAILABILITY_ZONE"
+  tasks:
+    - name: configure launch config
+      ec2_lc:
+        name: 'jenkins_demo_{{ ami_id }}'
+        region: 'us-east-1'
+        image_id: '{{ ami_id }}'
+        key_name: "{{ key_name }}"
+        instance_type: "m3.medium"
+        security_groups: "{{ security_group_id }}"
+
+    - name: configure autoscaling group and rolling-replace instances
+      ec2_asg:
+        name: 'jenkins-demo-asg'
+        region: us-east-1
+        desired_capacity: '1'
+        min_size: '1'
+        max_size: '1'
+        launch_config_name: 'jenkins_demo_{{ ami_id }}'
+        replace_all_instances: yes
+        replace_batch_size: 1
+        vpc_zone_identifier: '{{ subnet_id }}'
+        availability_zones: '{{ availability_zones }}'
+        tags:
+          - Name: "Jenkins Demo"
+          - Environment: "dev"
+          - Project: "automation"
+          - Customer: "dataxu"
+          - Team: "automation"
+          - Subcomponent: "jenkins-master"

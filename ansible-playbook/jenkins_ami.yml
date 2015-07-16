@@ -1,0 +1,96 @@
+# Ansible Playbook to Create a Jenkins Master AMI
+---
+- name: create instance
+  hosts: localhost
+  vars:
+    ec2_ami: ami-1ecae776 # amazon linux
+    key_name: "KEY_NAME"
+    subnet_id: "VPN_SUBNET"
+    security_group_id: "SECURITY_GROUP"
+
+  tags:
+    - ec2_create
+  tasks:
+    - name: create instance
+      local_action:
+        module: ec2
+        region: "us-east-1"
+        image: "{{ ec2_ami }}"
+        key_name: "{{ key_name }}"
+        instance_type: m3.medium
+        wait: yes
+        vpc_subnet_id: "{{ subnet_id }}"
+        assign_public_ip: "yes"
+        group_id: "{{ security_group_id }}"
+        instance_tags:
+          Name: "Jenkins Demo"
+          Environment: "dev"
+          Project: "automation"
+          Customer: "dataxu"
+          Team: "automation"
+          Subcomponent: "jenkins-master"
+      register: ec2
+
+    - name: add host
+      local_action:
+        module: add_host
+        hostname: "{{ item.id }}"
+        ansible_ssh_host: "{{ item['private_ip'] }}"
+        ansible_ssh_user: ec2-user
+        groupname: jenkins
+      with_items: ec2.instances
+
+    - name: wait for instance
+      local_action:
+        module: wait_for
+        host: "{{ item['private_ip'] }}"
+        port: "22"
+        delay: "60"
+        timeout: "320"
+        state: "started"
+      with_items: ec2.instances
+
+- name: configure jenkins master
+  hosts: jenkins
+  remote_user: ec2-user
+  sudo: yes
+  tags:
+    - configure
+  roles:
+    - role: geerlingguy.jenkins
+      jenkins_connection_retries: 100
+      jenkins_plugins:
+        - git
+        - ssh
+        - ec2
+
+  tasks:
+    - shell: echo "Install other libraries needed for your system and push config files"
+
+    - pip: name="github-pr"
+
+- name: save ec2 ami
+  hosts: localhost
+  tags:
+    - ec2_save
+  tasks:
+    - local_action:
+        module: ec2_ami
+        region: "us-east-1"
+        instance_id: "{{ groups['jenkins'][0] }}"
+        wait: yes
+        name: "Jenkins AMI"
+        description: "Jenkins AMI"
+      register: ami
+
+- name: teardown ec2 instance
+  hosts: localhost
+  tags:
+    - ec2_teardown
+  tasks:
+    - local_action:
+        module: ec2
+        region: "us-east-1"
+        state: 'absent'
+        instance_ids: "{{ item }}"
+      with_items: groups['jenkins']

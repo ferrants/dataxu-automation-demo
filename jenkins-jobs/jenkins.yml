@@ -1,0 +1,22 @@
+- job:
+    name: demo_job
+    parameters:
+      - string:
+          name: 'string'
+    builders:
+      - shell: |
+          echo ${string}
+
+- job:
+    name: automation-demo_master
+    scm:
+      - git:
+          url: 'https://github.com/ferrants/automation-demo.git'
+          branches:
+            - 'master'
+    builders:
+      - shell: |
+          ./init.sh
+          . ./my_env/bin/activate
+          jenkins-jobs -l debug test jenkins-jobs/jenkins.yml
+          jenkins-jobs --conf jenkins-jobs/jenkins_demo.ini update jenkins-jobs/jenkins.yml
