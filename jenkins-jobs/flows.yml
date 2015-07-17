@@ -1,0 +1,20 @@
+- job:
+    name: 'myapp_master'
+    project-type: flow
+    needs-workspace: 'true'
+    scm:
+      - git:
+          url: 'git@github.com:dataxu/myapp.git'
+          branches:
+            - 'master'
+    dsl: |
+        build('myapp_build', branch: 'master')
+
+        ami_job = build('myapp_create_ami')
+        artifact = ami_job.getArtifacts()[0].getHref()
+        url = ami_job.getEnvironment()['BUILD_URL']
+        ami_name = new URL("${url}artifact/${artifact}/*view*/").getText().tokenize()
+        ami_id = ami_name[1]
+
+        build('myapp_test_ami', ami_id: ami_id)
+        build('myapp_deploy_ami', ami_id: ami_id)

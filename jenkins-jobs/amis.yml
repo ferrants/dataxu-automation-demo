@@ -1,0 +1,55 @@
+- job-template:
+    name: "{app}_create_ami"
+    parameters:
+      - string:
+          name: 'fork'
+          default: dataxu
+      - string:
+          name: 'branch'
+          default: master
+    scm:
+      - git:
+          url: 'git@github.com:${{fork}}/ansible-playbooks.git'
+          branches:
+            - '${{branch}}'
+    builders:
+      - shell: |
+          virtualenv my_env
+          . ./my_env/bin/activate
+          pip install ansible
+          ansible-playbook {app}_create_ami.yml
+
+- job-template:
+    name: "{app}_deploy_ami"
+    parameters:
+      - string:
+          name: 'ami_id'
+      - string:
+          name: 'fork'
+          default: dataxu
+      - string:
+          name: 'branch'
+          default: master
+    scm:
+      - git:
+          url: 'git@github.com:${{fork}}/ansible-playbooks.git'
+          branches:
+            - '${{branch}}'
+    builders:
+      - shell: |
+          virtualenv my_env
+          . ./my_env/bin/activate
+          pip install ansible
+          ansible-playbook {app}_deploy_ami.yml -e ami_id=${{ami_id}}
+
+- job-group:
+    name: ami-jobs
+    jobs:
+      - "{app}_create_ami"
+      - "{app}_deploy_ami"
+
+- project:
+    name: my-app
+    app: jenkins
+    jobs:
+      - 'ami-jobs'

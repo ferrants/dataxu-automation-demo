@@ -16,11 +16,13 @@
     - shell: echo $RANDOM
       register: random
 
+    - file: path={{ playbook_dir }}/tmp state=directory
+
     - name: generate the userdata file
-      template: src="./templates/github-webhooks-userdata.sh.j2" dest="{{ playbook_dir }}/github-webhooks-userdata.sh"
+      template: src="./templates/github-webhooks-userdata.sh.j2" dest="{{ playbook_dir }}/tmp/github-webhooks-userdata.sh"
 
     - name: save the userdata info
-      command: cat {{ playbook_dir }}/github-webhooks-userdata.sh
+      command: cat {{ playbook_dir }}/tmp/github-webhooks-userdata.sh
       register: user_data
 
     - name: configure launch config
