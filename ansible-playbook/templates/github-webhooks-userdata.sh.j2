@@ -1,6 +1,7 @@
-#!/bin/sh
+#!/bin/sh -x
 
-exec > >(tee /var/log/user-data.log|logger -t user-data -s 2>/dev/console) 2>&1
+exec > /var/log/user-data.log
+exec 2> /var/log/user-data.log
 
 sudo yum update -y
 sudo yum install -y docker
@@ -9,6 +10,7 @@ sudo usermod -a -G docker ec2-user
 
 local_webhooks_config=/home/ec2-user/webhooks_config.yml
 docker_webhooks_config=/tmp/webhooks_config.yml
+
 cat <<-'EOF' >> ${local_webhooks_config}
 push:
   - match:
@@ -27,7 +29,6 @@ pr:
           fork: "{owner}"
           branch: "{branch}"
 EOF
-}
 
 sudo docker pull library/mongo
 sudo docker run -d --name mongodb -p 27017:27017 library/mongo mongod --smallfiles
