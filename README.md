@@ -1,5 +1,5 @@
 # DataXu Automation Demo
-An example of how we automate at DataXu
+An example of how we automate at DataXu. Presentation here: https://www.dataxu.com/blog/github-meetup-automating-the-build-test-deploy-process-at-dataxu-with-jenkins-ansible-and-aws/
 
 ### Create Jenkins AMI
 ```
